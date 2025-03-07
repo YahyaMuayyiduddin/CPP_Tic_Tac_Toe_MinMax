@@ -35,12 +35,19 @@ using namespace std;
      * 
      */
     void printGrid(){
-        for(int i = 0; i < 3; i++){
-            for(int j = 0; j < 3; j++){
-                std::cout << internalGrid[i][j] << " ";
-            }
         std::cout << endl;
+        std::cout << "   0   1   2" << endl;
+        std::cout << "-------------" << endl;
+        for(int i = 0; i < 3; i++){
+            std::cout << i<< "| ";
+            for(int j = 0; j < 3; j++){
+                std::cout << internalGrid[i][j] << "   ";
+            }
+         
+         std::cout << " | "<<endl;
+         std::cout << " | "<<endl;
         }
+        std::cout << endl;
     };
 
     /**
@@ -75,7 +82,7 @@ using namespace std;
      * 
      */
     int countHorizontal(char player, int row, int column, int step){
-        if(column > 2||internalGrid[row][column] != player ){
+        if(column < 0 || column > 2||internalGrid[row][column] != player ){
             return 0;
         }else{
             return 1 + countHorizontal(player,row, column + step, step);
@@ -114,7 +121,8 @@ using namespace std;
      * 
      */
     int countVertical(char player, int row, int column, int step){
-        if(column > 2||internalGrid[row][column] != player ){
+        // std::cout << row <<endl;
+        if(row < 0||row > 2||internalGrid[row][column] != player ){
             return 0;
         }else{
             return 1 + countVertical(player,row + step, column, step);
@@ -134,7 +142,7 @@ using namespace std;
         if(internalGrid[row][columns] != 'O' || row >= rows ||  columns >= column){
             std::cout << "Invalid placement" << endl;
         }else{
-            internalGrid[row][columns] = player;
+            internalGrid[row][columns] = player ; //change later
             emptySpaces--;
         }
        
@@ -150,7 +158,7 @@ using namespace std;
         
     };
     int countDiagonalL(char player, int row, int column, int step){
-        if(column > 2||internalGrid[row][column] != player ){
+        if(column > 2||column < 0 || row > 2 || row < 0|| internalGrid[row][column] != player ){
             return 0;
         }else{
             return 1 + countDiagonalL(player,row + step, column + step, step);
@@ -167,7 +175,7 @@ using namespace std;
         
     };
     int countDiagonalR(char player, int row, int column, int step){
-        if(column > 2||internalGrid[row][column] != player ){
+        if(column > 2||column < 0 || row > 2 || row < 0|| internalGrid[row][column] != player ){
             return 0;
         }else{
             return 1 + countDiagonalR(player,row + step, column - step, step);
@@ -199,41 +207,52 @@ using namespace std;
     };
 
         
-    
-
-
 
 };
 
 class Game{
     public:
     Grid grid;
-    std::array<char,2> players;
+    std::array<char,2> players = {'P','X'};
     char currentPlayer;
     int currentIdx;
     char PC = 'X';
 
     Game(){
-        // currentIdx = 0;
+        currentIdx = 0;
+        // players[1] = PC;
+        // players[0] = 'P';
         // players = getPlayers();
-        // currentPlayer = players[currentIdx];
+        currentPlayer = players[currentIdx];
     };
     
     void playGame(){
         bool winner = false;
         grid.printGrid();
+        int row;
+        int column;
         while(!winner){
-            int row;
-            int column;
-            std::array<int,2> inputs = askInput();
+            std::cout << currentPlayer << " is playing" << endl;
+            if(currentPlayer == PC){
+                std::array<int,2> pos = findBestPlay(PC);
+                row = pos[0];
+                column = pos[1];
+                grid.playToken(currentPlayer,row,column);
+
+            }else{
+                std::array<int,2> inputs = askInput();
             row = inputs[0] - '0';
             column = inputs[1] - '0';
             grid.playToken(currentPlayer,row,column);
+
+            }
+            
             grid.printGrid();
             if(grid.checkHorizontal(currentPlayer, row, column) || grid.checkVertical(currentPlayer, row, column) 
             || grid.checkDiagonalL(currentPlayer,row,column)||grid.checkDiagonalR(currentPlayer, row,column)){
                 winner = true;
             }
+            
             nextPlayer();
 
 
@@ -316,118 +335,105 @@ class Game{
         return currMax;
     }
 
+    /**
+     * 
+     * Method to pick the best move to play next
+     * 
+     * @param player The pc player letter
+     * @return a 2 dimensional array containing the position coordinate of the best next move
+     */
     std::array<int,2> findBestPlay(char player){
         int currIdx = 0;
         int currMax = std::numeric_limits<int>::min();
+        //Gets available positions/empty positions on the grid
         std::vector<std::array<int,2>> positions = getPositions(grid);
         std::vector<int> scores;
+        //Iterates through empty positions
         for(int i = 0; i < positions.size(); i++){
-            
-            scores.push_back(minMax(PC,positions[i][0], positions[i][1], grid));
-
+            //Places a token on the position
+            grid.playToken(PC, positions[i][0],positions[i][1]);
+            //Calls minMax to calculate the score of this branch, and pushes the score to scores
+            scores.push_back(minMax((currentIdx+1)%2,positions[i][0], positions[i][1], grid));
+            //Resets the grid to its original state before the recursive call
+            grid.internalGrid[positions[i][0]][positions[i][1]] = 'O';
             }
-
+        //Finds the highest score, and sets the current iteration idex to be returned
         for(int i = 0; i < scores.size(); i++){
-            
-
-            if (scores[i] == 1){
-                return positions[i];
-                
-            }else{
                 if(scores[i] > currMax){
                     currMax = scores[i];
                     currIdx = i;
                 }
-            }
-            
         }
         return positions[currIdx];
 
     }
-
+    /**
+     * 
+     * Recursive implementation of the Mini-Max algorithm to find the next position to play.
+     * PC player is considered the max player, and human player is the min player
+     * @param index The player index in the recursive call/The player currently 'playing' in the simulation
+     * @param row The row of the tile the token will be placed on for this branch
+     * @param column The column of the tile the token will be placed on for this branch
+     * @param checkGrid The copy of the grid to simulate/recurse on
+     * 
+     * @return The highest || lowest score based on the player in the recursive call
+     * 
+     */
     int minMax(int index, int row, int column, Grid checkGrid){
-        // std::vector<int> scores;
-        if(checkGrid.checkWin(players[index], row, column) && players[index] == PC ){
+        //Base cases
+        //If the tree ends with a PC player winning, return a score of 1
+        if(checkGrid.checkWin(checkGrid.internalGrid[row][column], row, column) && checkGrid.internalGrid[row][column] == PC ){
             return +1;
-        }else if(checkGrid.checkWin(players[index],row,column) && players[index] != PC){
+        //If the tree ends with a Human player winning, return a score of -1
+        }else if(checkGrid.checkWin(checkGrid.internalGrid[row][column],row,column) && checkGrid.internalGrid[row][column] != PC){
             return -1;
+        //Tree ends in a draw, return 0
         }else if(grid.getEmptySpaces() == 0){
             return 0;
         }
         else{
+            std::vector<int> scores;
+            // Gets all available positions/ all empty positions
             std::vector<std::array<int, 2>> positions = getPositions(checkGrid);
             std::vector<int> validPos;
             int finalScore = 0;
+            // Iterates through all available empty positions
             for(int i = 0; i < positions.size(); i++){
+                // Puts the players token in the position on the copied grid
                 checkGrid.playToken(players[index], positions[i][0], positions[i][1]);
+                // Recursively calls minMax on the copied grid that was update, the next player, and the current positon
+                // in the iteration. Then appends the score
                 validPos.push_back(minMax((index+1)%2, positions[i][0], positions[i][1], checkGrid));
                 checkGrid.internalGrid[positions[i][0]][positions[i][1]] = 'O';
             }
+            // Picks score based on which player is in the recursive call
             for(int i = 0; i < validPos.size(); i++){
                 if(players[index] == PC){
+                    // Picks the highest score if the player in the recursive call is the PC
                     finalScore = findMax(validPos);
                 }else{
+                    // Picks the lowest score if the player in the recursive call is the human player
                     finalScore = findMin(validPos);
                 }
-
                 }
-
                 return finalScore;
                 
             }
             
         }
-        
+    
 
     };
 
 
     
-
-
-
 int main(){
 
-    // Grid grid;
-    // grid.grid[0][0] = 'X';
-    // grid.grid[1][1] = 'X';
-    // grid.grid[2][2] = 'X';
-    // grid.printGrid();
-    // std::cout << std::boolalpha << grid.checkDiagonalL('X',2,2);
-
     
-    // char string[6] = "Yahya";
-    // char* ptr = string;
-    // std::cout << *ptr;
-
-
     Game game;
-    game.grid.internalGrid[0][0] = 'P';
-    game.grid.internalGrid[0][1] = 'X';
-    game.grid.internalGrid[0][2] = 'P';
-    game.grid.internalGrid[1][0] = 'P';
-    game.grid.internalGrid[1][1] = 'X';
-    game.grid.internalGrid[1][2] = 'X';
-    game.grid.internalGrid[2][2] = 'X';
-    game.grid.printGrid();
-    std::array<int,2> bestPos = game.findBestPlay('X');
-    std::cout << bestPos[0] << bestPos[1] << endl;
-    game.grid.playToken('X',bestPos[0],bestPos[1]);
-    game.grid.printGrid();
+    game.playGame();
 
-
-
-    // game.playGame();
-    // game.getGrid()[0][1] = 'X';
-    // std::vector<std::array<int, 2>> positions = game.getPositions();
-
-    // for(int i = 0; i < positions.size();i++){
-    //     std::cout << positions[i][0] << positions[i][1] <<endl;
-    // }
-    
-    // std::cout << game.askInput()[0];
-    // game.playGame();
-
+  
 
 }
 
