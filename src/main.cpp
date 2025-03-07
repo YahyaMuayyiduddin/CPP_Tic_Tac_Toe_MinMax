@@ -42,7 +42,7 @@ class Grid{
         
     };
     /**
-     * Recursive call to check 
+     * Recursive call to count how many matching tokens in the same row
      * 
      */
     int countHorizontal(char player, int row, int column, int step){
@@ -65,7 +65,7 @@ class Grid{
         
     };
     /**
-     * Recursive call to check 
+     * Recursive call to count how many matching tokens in the same column
      * 
      */
     int countVertical(char player, int row, int column, int step){
@@ -85,9 +85,40 @@ class Grid{
         }
        
     }
-
-    
-   
+    bool checkDiagonalL(char player, int row, int column){
+        int sum = 0;
+        sum += countDiagonalL(player, row+1, column+1, 1);
+        sum += countDiagonalL(player, row -1, column-1, -1);
+        if(sum + 1 >= 3){
+            return true;
+        }
+        return false;
+        
+    };
+    int countDiagonalL(char player, int row, int column, int step){
+        if(column > 2||grid[row][column] != player ){
+            return 0;
+        }else{
+            return 1 + countDiagonalL(player,row + step, column + step, step);
+        }
+    };
+    bool checkDiagonalR(char player, int row, int column){
+        int sum = 0;
+        sum += countDiagonalR(player, row+1, column-1, 1);
+        sum += countDiagonalR(player, row -1, column+1, -1);
+        if(sum + 1 >= 3){
+            return true;
+        }
+        return false;
+        
+    };
+    int countDiagonalR(char player, int row, int column, int step){
+        if(column > 2||grid[row][column] != player ){
+            return 0;
+        }else{
+            return 1 + countDiagonalR(player,row + step, column - step, step);
+        }
+    };
 
 
 };
@@ -109,11 +140,15 @@ class Game{
         bool winner = false;
         grid.printGrid();
         while(!winner){
-            
+            int row;
+            int column;
             std::array<int,2> inputs = askInput();
-            grid.playToken(currentPlayer,(int)inputs[0],(int)inputs[1]);
+            row = inputs[0] - '0';
+            column = inputs[1] - '0';
+            grid.playToken(currentPlayer,row,column);
             grid.printGrid();
-            if(grid.checkHorizontal(currentPlayer, (int)inputs[0],(int)inputs[1]) || grid.checkVertical(currentPlayer, (int)inputs[0],(int)inputs[1])){
+            if(grid.checkHorizontal(currentPlayer, row, column) || grid.checkVertical(currentPlayer, row, column) 
+            || grid.checkDiagonalL(currentPlayer,row,column)||grid.checkDiagonalR(currentPlayer, row,column)){
                 winner = true;
             }
             nextPlayer();
@@ -126,15 +161,15 @@ class Game{
 
     std::array<int,2> askInput(){
         std::array<int,2> inputs;
+        string input;
         
-        std::cout << "Which row would you like to place your token?";
-        cin >> inputs[0];
-        std::cout << endl;
-        std::cout << "Which column would you like to place your token? ";
-        cin >> inputs[1];
-        std::cout << endl;
+        
+        std::cout << "Which row and column would you like to place your token? (format it as: 01) ";
+        cin >> input;
+        inputs[0] = input[0];
+        inputs[1] = input[1];
         return inputs;
-
+        
 
     };
 
@@ -154,9 +189,28 @@ class Game{
 
 };
 
+
+    
+
+
+
 int main(){
 
+    // Grid grid;
+    // grid.grid[0][0] = 'X';
+    // grid.grid[1][1] = 'X';
+    // grid.grid[2][2] = 'X';
+    // grid.printGrid();
+    // std::cout << std::boolalpha << grid.checkDiagonalL('X',2,2);
+
+    
+    // char string[6] = "Yahya";
+    // char* ptr = string;
+    // std::cout << *ptr;
+
+
     Game game;
+    // std::cout << game.askInput()[0];
     game.playGame();
 
 
