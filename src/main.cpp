@@ -227,7 +227,7 @@ class Game{
     char PC = 'X';
 
     Game(){
-        currentIdx = 1;
+        currentIdx = 0;
         // players[1] = PC;
         // players[0] = 'P';
         // players = getPlayers();
