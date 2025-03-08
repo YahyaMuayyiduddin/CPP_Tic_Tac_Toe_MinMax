@@ -8,20 +8,19 @@ using namespace std;
  * Definition of a grid class
  * 
  */
-
  class Grid{
     public:
     std::array<std::array<char, 3> , 3> internalGrid;
     int rows;
     int column;
-    int emptySpaces;
+    int emptySpaces=0;
 
     Grid(){
         //Initialises an empty grid
         for(int i = 0; i < 3; i++){
             for(int j = 0; j < 3; j++){
                 internalGrid[i][j] = 'O';
-                emptySpaces--;
+                emptySpaces++;
             }
         }
         rows = 3;
@@ -36,16 +35,22 @@ using namespace std;
      */
     void printGrid(){
         std::cout << endl;
-        std::cout << "   0   1   2" << endl;
-        std::cout << "-------------" << endl;
+        std::cout << "          Columns " << endl;
+        std::cout << "         0   1   2" << endl;
+        std::cout << "      ------------" << endl;
         for(int i = 0; i < 3; i++){
-            std::cout << i<< "| ";
-            for(int j = 0; j < 3; j++){
-                std::cout << internalGrid[i][j] << "   ";
+            if(i==1){
+                std::cout << "Rows ";
+                std::cout << "|"<<i<< "| ";
+            }else{
+                std::cout <<"     |"<< i<< "| ";
             }
-         
-         std::cout << " | "<<endl;
-         std::cout << " | "<<endl;
+            
+            for(int j = 0; j < 3; j++){
+                std::cout<< internalGrid[i][j] << "   ";
+            }
+         std::cout << "     | | "<<endl;
+         std::cout << "     | | "<<endl;
         }
         std::cout << endl;
     };
@@ -71,6 +76,7 @@ using namespace std;
         return false;
         
     };
+
     /**
      * Recursive call to count how many matching tokens in the same row, given a direction
      * @param player The specified player letter
@@ -138,12 +144,14 @@ using namespace std;
      * @param column the column to put the token in
      * 
      */
-    void playToken(char player, int row, int columns){
+    bool playToken(char player, int row, int columns){
         if(internalGrid[row][columns] != 'O' || row >= rows ||  columns >= column){
             std::cout << "Invalid placement" << endl;
+            return false;
         }else{
             internalGrid[row][columns] = player ; //change later
             emptySpaces--;
+            return true;
         }
        
     }
@@ -219,7 +227,7 @@ class Game{
     char PC = 'X';
 
     Game(){
-        currentIdx = 0;
+        currentIdx = 1;
         // players[1] = PC;
         // players[0] = 'P';
         // players = getPlayers();
@@ -228,11 +236,16 @@ class Game{
     
     void playGame(){
         bool winner = false;
+        std::cout <<endl<< "You are playing as player P. Your marks will be represented as capital P"<< endl <<"The PC will play against you, and X will represen its mark"<<endl;
         grid.printGrid();
         int row;
         int column;
         while(!winner){
-            std::cout << currentPlayer << " is playing" << endl;
+            std::cout<<grid.emptySpaces <<endl;
+            if(grid.emptySpaces==0){
+                break;
+            }
+            std::cout << "Player "<< currentPlayer << " is playing" << endl;
             if(currentPlayer == PC){
                 std::array<int,2> pos = findBestPlay(PC);
                 row = pos[0];
@@ -240,10 +253,14 @@ class Game{
                 grid.playToken(currentPlayer,row,column);
 
             }else{
+            bool validPlay = false;
+            while(!validPlay){
                 std::array<int,2> inputs = askInput();
-            row = inputs[0] - '0';
-            column = inputs[1] - '0';
-            grid.playToken(currentPlayer,row,column);
+                row = inputs[0] - '0';
+                column = inputs[1] - '0';
+                validPlay = grid.playToken(currentPlayer,row,column);
+            }
+           
 
             }
             
@@ -251,28 +268,49 @@ class Game{
             if(grid.checkHorizontal(currentPlayer, row, column) || grid.checkVertical(currentPlayer, row, column) 
             || grid.checkDiagonalL(currentPlayer,row,column)||grid.checkDiagonalR(currentPlayer, row,column)){
                 winner = true;
+                break;
             }
             
             nextPlayer();
 
 
         }
-        std::cout << "You win" << endl;
+        if(grid.emptySpaces==0){
+            std::cout<< "Draw!"<<endl;
+        }
+        else{
+            std::cout << "Player " <<players[currentIdx]<< " wins!" << endl;
+
+        }
+    
+        
+
+   
+        
 
     };
 
     std::array<int,2> askInput(){
         std::array<int,2> inputs;
         string input;
-        
-        
-        std::cout << "Which row and column would you like to place your token? (format it as: 01) ";
+        bool validInput = false;
+        while(!validInput){
+        std::cout << "Which row and column would you like to place your token? (format it as: 01) "<<endl;
         cin >> input;
-        inputs[0] = input[0];
+        if(input.size() > 2){
+            std::cout << "Input should only be 2 digits" << endl;
+        }else{
+            inputs[0] = input[0];
         inputs[1] = input[1];
-        return inputs;
+        validInput = true;
+        }
         
 
+        }
+        
+        
+        return inputs;
+    
     };
 
     void nextPlayer(){
@@ -356,9 +394,11 @@ class Game{
             scores.push_back(minMax((currentIdx+1)%2,positions[i][0], positions[i][1], grid));
             //Resets the grid to its original state before the recursive call
             grid.internalGrid[positions[i][0]][positions[i][1]] = 'O';
+            grid.emptySpaces++;
             }
         //Finds the highest score, and sets the current iteration idex to be returned
         for(int i = 0; i < scores.size(); i++){
+            // std::cout << scores[i]  << ' ' << positions[i][0] << positions[i][1] << endl;
                 if(scores[i] > currMax){
                     currMax = scores[i];
                     currIdx = i;
@@ -432,6 +472,15 @@ int main(){
     
     Game game;
     game.playGame();
+    // game.grid.internalGrid[0][0] = 'P';
+    // game.grid.internalGrid[0][1] = 'X';
+    // game.grid.internalGrid[0][2] = 'P';
+    // game.grid.internalGrid[1][0] = 'P';
+    // game.grid.internalGrid[1][1] = 'X';
+    // game.grid.internalGrid[1][2] = 'X';
+    // game.grid.internalGrid[2][2] = 'X';
+    // game.grid.printGrid();
+    // game.findBestPlay('X');
 
   
 
